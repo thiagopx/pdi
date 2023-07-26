@@ -2,7 +2,7 @@
 
 ## Professor Contact
 
-- Prof. Dr. Thiago Meireles Paixão <img src="icon-scholar.png" alt="Icon" width="20" height="20"> [Google Scholar](https://scholar.google.com/citations?user=AuizbbAAAAAJ&hl=pt-BR) <img src="icon-lattes.png" alt="Icon" width="20" height="20">[Lattes](http://lattes.cnpq.br/2961730349897943)
+- Prof. Dr. Thiago Meireles Paixão <img src="images/icon-scholar.png" alt="Icon" width="20" height="20"> [Google Scholar](https://scholar.google.com/citations?user=AuizbbAAAAAJ&hl=pt-BR) <img src="images/icon-lattes.png" alt="Icon" width="20" height="20">[Lattes](http://lattes.cnpq.br/2961730349897943)
 - Email: [thiago.paixao@ifes.edu.br](mailto:thiago.paixao@ifes.edu.br)
   
 Welcome to the Digital Image Processing course repository! This repository contains support materials for the Digital Image Processing course hosted by the Federal Institute of Espírito Santo (IFES, PPComp), including Jupyter notebooks, scripts, and other useful stuff.
