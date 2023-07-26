@@ -4,7 +4,7 @@
 
 - **Prof. Dr. Thiago Meireles Paixão**
 - Email: [thiago.paixao@ifes.edu.br](mailto:thiago.paixao@ifes.edu.br)
-- [Google Scholar](https://scholar.google.com/citations?user=AuizbbAAAAAJ&hl=pt-BR) [Lattes] (http://lattes.cnpq.br/2961730349897943)
+- <img src="icon-scholar.png" alt="Icon" width="20" height="20"> [Google Scholar](https://scholar.google.com/citations?user=AuizbbAAAAAJ&hl=pt-BR) <img src="icon-lattes.png" alt="Icon" width="20" height="20">[Lattes](http://lattes.cnpq.br/2961730349897943)
 
 Welcome to the Digital Image Processing course repository! This repository contains support materials for the Digital Image Processing course, including Jupyter notebooks, images, scripts, and instructions to create a virtual environment for running the codes.
 
