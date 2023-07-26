@@ -5,22 +5,13 @@
 - Prof. Dr. Thiago Meireles Paixão <img src="icon-scholar.png" alt="Icon" width="20" height="20"> [Google Scholar](https://scholar.google.com/citations?user=AuizbbAAAAAJ&hl=pt-BR) <img src="icon-lattes.png" alt="Icon" width="20" height="20">[Lattes](http://lattes.cnpq.br/2961730349897943)
 - Email: [thiago.paixao@ifes.edu.br](mailto:thiago.paixao@ifes.edu.br)
   
-Welcome to the Digital Image Processing course repository! This repository contains support materials for the Digital Image Processing course, including Jupyter notebooks, images, scripts, and instructions to create a virtual environment for running the codes.
-
-## Table of Contents
-- [Course Description](#course-description)
-- [Course Content](#course-content)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Contributing](#contributing)
-- [License](#license)
+Welcome to the Digital Image Processing course repository! This repository contains support materials for the Digital Image Processing course hosted by the Federal Institute of Espírito Santo (IFES, PPComp), including Jupyter notebooks, scripts, and other useful stuff.
 
 ## Course Description
 
-In this course, we will explore the fundamentals of digital image processing, including image enhancement, restoration, segmentation, and more. We will also cover practical applications of image processing techniques in various fields, such as computer vision, medical imaging, and multimedia.
+In this course, we will explore the fundamentals of digital image processing, including image enhancement, restoration, segmentation, and more.
 
-## Course Content
+## Content
 
 This repository is organized as follows:
 
@@ -41,4 +32,5 @@ Before starting this course, it is recommended to have a basic understanding of 
 To run the Jupyter notebooks and work on the course materials, you'll need to set up a Python environment with the required dependencies. Follow the steps below:
 
 1. Clone this repository to your local machine:
+2. ...
 
