@@ -1,245 +1,211 @@
-from collections import defaultdict
+import os
+import random
+import tempfile
 import cv2
 import numpy as np
-import math
-import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
+import argparse
+import shutil
 
-# from config import CONFIG_NGRAMS_NULL
-# from generate_samples.utils import crop_image_from_bboxes
-from utils import load_rgb
-
-DPI = 10
+# from skimage.util.shape import view_as_blocks
+# from skimage.util import montage
+from collections import defaultdict
+from skimage.filters import threshold_sauvola
 
 
-def show(
-    image,
-    ax=None,
-    rotate=False,
-    scale=1,
-    title=None,
-    fontsize=10,
-    cmap=None,
-    return_ax=False,
-):
-    h, w = image.shape[:2]
-    if ax is None:
-        fig, ax = plt.subplots(figsize=(int(scale * h), int(scale * w)), dpi=DPI)
-    ax.cla()
-    ax.axis("off")
-    if rotate:
-        param = (1, 0) if image.ndim == 2 else (1, 0, 2)
-        image = np.transpose(image, param)[::-1]
-    ax.imshow(image, cmap=cmap)
-    if title:
-        ax.set_title(title, fontsize=DPI * fontsize)
-    if return_ax:
-        return ax
+class defaultdict_factory(defaultdict):
+    def __init__(self, factory_func):
+        super().__init__(None)
+        self.factory_func = factory_func
+
+    def __missing__(self, key):
+        ret = self.factory_func(key)
+        self[key] = ret
+
+        return self[key]
 
 
-def show_collection(
-    images,
-    titles=[],
-    num_rows=-1,
-    num_cols=-1,
-    scale=1,
-    cmap=None,
-    return_axes=False,
-    fontsize=10,
-    # pad=1.0,
-):
-    assert len(images) > 1
-
-    if num_cols == -1:
-        # none provided: fix row in 1
-        if num_rows == -1:
-            num_rows = 1
-        # compute #cols based on #rows
-        num_cols = len(images) // num_rows
+def str_to_bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ("yes", "true", "t", "y", "1"):
+        return True
+    elif v.lower() in ("no", "false", "f", "n", "0"):
+        return False
     else:
-        # only #cols provided: fix cols, compute rows
-        if num_rows == -1:
-            num_rows = math.ceil(len(images) / num_cols)
-        # both rows and cols provided: fix rows, compute cols
+        raise argparse.ArgumentTypeError("Boolean value expected.")
+
+
+def clear_dir(path):
+    for root, _, fnames in os.walk(path):
+        for fname in fnames:
+            os.remove("{}/{}".format(root, fname))
+
+
+def remove_dir(path):
+    shutil.rmtree(path, ignore_errors=True)
+
+
+def move_dir(src, dst=None):
+    if dst is None:
+        dst = tempfile.NamedTemporaryFile().name
+    try:
+        _ = shutil.move(src, dst)
+    except FileNotFoundError as exc:
+        pass
+
+
+def load_rgb(fname):
+
+    rgb = cv2.imread(fname)[..., ::-1]
+    return rgb
+
+
+def save_rgb(image, fname):
+    assert image.ndim == 3
+
+    bgr = image[..., ::-1]
+    cv2.imwrite(fname, bgr)  # it saves rgb, so we have to invert before save
+
+
+def load_grayscale(fname, num_channels=1):
+    assert num_channels in [1, 3]
+
+    gray = cv2.imread(fname, cv2.IMREAD_GRAYSCALE)
+    if num_channels == 3:
+        gray = np.stack(3 * [gray]).transpose(1, 2, 0)
+    return gray
+
+
+def load_binary(fname, thresh_func=threshold_sauvola, num_channels=1):
+    assert num_channels in [1, 3]
+
+    gray = load_grayscale(fname)
+    binary = grayscale_to_binary(gray, thresh_func)
+    thresh = thresh_func(gray)
+    binary = (255 * (binary > thresh)).astype(np.uint8)
+    if num_channels == 3:
+        binary = np.stack(3 * [binary], axis=0).transpose(1, 2, 0)
+    return binary
+
+
+def crop_central_area(image, w_crop):
+    _, w = image.shape[:2]
+    x_start = (w - w_crop) // 2
+    return image[:, x_start : x_start + w_crop].copy()
+
+
+def rgb_to_grayscale(image):
+    assert image.ndim == 3
+
+    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    return gray
+
+
+def grayscale_to_rgb(image):
+    assert image.ndim == 2
+
+    rgb = np.stack([image, image, image]).transpose((1, 2, 0))
+    return rgb
+
+
+def grayscale_to_binary(image, thresh_func=threshold_sauvola, num_channels=1):
+    assert num_channels in [1, 3]
+    assert image.ndim == 2
+
+    thresh = thresh_func(image)
+    binary = (255 * (image > thresh)).astype(np.uint8)
+    if num_channels == 3:
+        binary = np.stack(3 * [binary], axis=0).transpose(1, 2, 0)
+    return binary
+
+
+def rgb_to_binary(image, thresh_func=threshold_sauvola, num_channels=1):
+    assert num_channels in [1, 3]
+    assert image.ndim == 3
+
+    gray = rgb_to_grayscale(image)
+    binary = grayscale_to_binary(gray, thresh_func, num_channels)
+    return binary
+
+
+def compute_threshold(image, thresh_func=threshold_sauvola):
+    assert image.ndim in [2, 3]
+
+    if image.ndim == 3:
+        image = rgb_to_grayscale(image)
+    return thresh_func(image)
+
+
+def apply_threshold(image, thresh, num_channels=1):
+    assert image.ndim in [2, 3]
+    if image.ndim == 3:
+        gray = rgb_to_grayscale(image)
+    else:
+        gray = image
+    binary = (255 * (gray > thresh)).astype(np.uint8)
+    if num_channels == 3:
+        binary = np.stack(3 * [binary], axis=0).transpose(1, 2, 0)
+    return binary
+
+
+def is_integer(value):
+    return value == int(value)
+
+
+def doc_id_from_path(fname):
+    doc_without_ext = os.path.splitext(fname)[0]
+    doc_basename = os.path.basename(doc_without_ext)
+    return doc_basename
+
+
+def save_list_as_txt(list_, fname, shuffle=False):
+    list_cpy = list_.copy()
+    if shuffle:
+        random.shuffle(list_cpy)
+    txt = "\n".join(list_cpy)
+    open(fname, "w").write(txt)
+
+
+def decode_txt(fname, num_cols=2):
+    assert num_cols > 1
+    txt = []
+    lines = open(fname, "r").readlines()
+    for line in lines:
+        line_split = line.strip().split()[:num_cols]
+        txt.append(line_split)
+    cols = [list(col) for col in zip(*txt)]
+    return cols
+
+
+def sample_from_lists(*lists, k=10):
+    lists_merged = list(zip(*lists))
+    lists_sampled = random.sample(lists_merged, k=k)
+    return list(zip(*lists_sampled))
+
+
+def merge_by_keys(dict_, f_merge):
+    """Merge entries with similar keys, where similarity is defined by f_merge function."""
+    dict_merged = defaultdict(list)
+    for k, v in dict_.items():
+        k_ = f_merge(k)
+        dict_merged[k_] += v
+    return dict_merged
+
+
+def function_on_lists(lists, func):
+    list_all = []
+    for list_ in lists:
+        list_all += list_
+    return func(list_all)
+
+
+def flatten(lists_or_tuples):
+    list_all = []
+    for x in lists_or_tuples:
+        if not (isinstance(x, list) or isinstance(x, tuple)):
+            list_all.append(x)
+        # elif isflat(x):
+        #     list_all.extend(x)
         else:
-            num_cols = math.ceil(len(images) / num_rows)
-
-    if len(titles) > 0:
-        assert len(titles) == len(images)
-    else:
-        titles = len(images) * [""]
-
-    h, w = images[0].shape[:-1]
-    fig, axes = plt.subplots(
-        nrows=num_rows,
-        ncols=num_cols,
-        figsize=(int(scale * w * num_cols), int(scale * h * num_rows)),
-        dpi=DPI,
-    )
-    k = 1
-    for ax, image, title in zip(axes.flatten(), images, titles):
-        ax.imshow(image, cmap=cmap)
-        ax.axis("off")
-        ax.set_title(title, fontsize=DPI * fontsize)
-        k += 1
-    fig.tight_layout()
-    if return_axes:
-        return axes
-
-
-def draw_bbox(ax, bbox, color=(1.0, 0, 1.0)):
-    rect = Rectangle(
-        (bbox[0], bbox[1]), bbox[2], bbox[3], edgecolor=color, facecolor="none"
-    )
-    ax.add_artist(rect)
-    return ax
-
-
-def gray2rgb(image):
-    return np.transpose(np.stack(3 * [image]), (1, 2, 0))
-
-
-def list2table(mlist, n=20):
-    line = []
-    lines = [" | ".join(n * ["[]()"]), "|".join(n * ["-----"])]
-    k = 0
-    for w in mlist:
-        line.append(w)
-        if (k + 1) % n == 0:
-            lines.append(" | ".join(line))
-            line = []
-        k += 1
-    sep = "\n{}\n".format("|".join(n * ["-----"]))
-    text = "\n".join(lines)
-    return text
-
-
-def autolabel(rects, ax):
-    """Attach a text label above each bar in *rects*, displaying its height.
-    https://matplotlib.org/3.3.2/gallery/lines_bars_and_markers/barchart.html#sphx-glr-gallery-lines-bars-and-markers-barchart-py
-    """
-    for rect in rects:
-        height = rect.get_height()
-        ax.annotate(
-            "{:.2f}".format(height),
-            xy=(rect.get_x() + rect.get_width() / 2, height),
-            xytext=(0, 3),  # 3 points vertical offset
-            textcoords="offset points",
-            ha="center",
-            va="bottom",
-        )
-
-
-# def show_samples(
-#     ngrams_dict,
-#     k=100,
-#     filter_negative=False,
-#     num_rows=10,
-#     scale=0.5,
-#     fontsize=12,
-#     pad=1.0,
-#     sample_size=(32, 64),
-#     shuffle=False,
-# ):
-#     # filter
-#     samples_all = []
-#     for ngram_text, samples in ngrams_dict.items():
-#         negative = ngram_text == CONFIG_NGRAM_NEGATIVE_CHAR
-#         unused = ngram_text == CONFIG_NGRAM_UNUSED_CHAR
-#         used = not (negative or unused)
-#         # condition_positive = filter_positive and positive
-#         # print(condition_unused, len(samples))
-#         if filter_used and used:
-#             continue
-#         if filter_unused and unused:
-#             continue
-#         if filter_negative and negative:
-#             continue
-#         for doc1, doc2, bbox1, bbox2, conf, mode in samples:
-#             sample_with_ngram = (ngram_text, doc1, doc2, bbox1, bbox2, conf, mode)
-#             samples_all.append(sample_with_ngram)
-
-#     # show
-#     samples_img = []
-#     titles = []
-#     instances = random.choices(samples_all, k=k)
-#     for ngram_text, doc1, doc2, bbox1, bbox2, _, _ in instances:
-#         # pick a sample
-#         # ngram_text, doc1, doc2, bbox1, bbox2 = random.choice(samples_all)
-#         image1 = load_rgb(doc1.replace("_ori", "_bin"))
-#         image2 = load_rgb(doc2.replace("_ori", "_bin"))
-#         sample_img = crop_image_from_bboxes(image1, image2, bbox1, bbox2)
-#         samples_img.append(put_frame(sample_img))
-#         titles.append(ngram_text)
-
-#     show_collection(samples_img, num_rows=num_rows, titles=titles, scale=scale, fontsize=fontsize)
-
-
-# def plot_ngram_dist(ngrams_dict, top_ngrams=30):
-#     fig, ax = plt.subplots(figsize=(15, 3))
-#     count = {ngram_text: len(samples) for ngram_text, samples in ngrams_dict.items()}
-#     count_sorted = sorted(count.items(), key=lambda item: item[1], reverse=True)[:top_ngrams]
-#     labels, values = zip(*count_sorted)
-#     # labels
-#     plt.bar(range(len(count_sorted)), values, align="center")
-#     plt.xticks(range(len(count_sorted)), labels, fontsize=12)
-#     plt.yticks(fontsize=12)
-
-
-def plot_dist(values, topn=30):
-    fig, ax = plt.subplots(figsize=(15, 3))
-    count = defaultdict(lambda: 0)
-    for val in values:
-        count[val] += 1
-    count_sorted = sorted(count.items(), key=lambda item: item[1], reverse=True)[:topn]
-    labels, values = zip(*count_sorted)
-    # labels
-    plt.bar(range(len(count_sorted)), values, align="center")
-    plt.xticks(range(len(count_sorted)), labels, fontsize=12)
-    plt.yticks(fontsize=12)
-
-
-def put_frame(image, is_rgb=False, thickness=1, color=(255, 0, 0)):
-    h, w = image.shape[:2]
-    bbox = (0, 0, w, h)
-    image_frame = draw_bbox(image, bbox, is_rgb, thickness, color=color)
-    return image_frame
-
-
-def draw_bbox(image, bbox, is_rgb=False, thickness=1, color=(255, 0, 0)):
-    if image.dtype in [np.bool, np.float32]:
-        image = (255 * image).astype(np.uint8)
-    if not is_rgb:
-        image = np.stack([image, image, image], axis=0).transpose([1, 2, 0])
-
-    x, y, w, h = bbox
-    x1 = x
-    y1 = y
-    x2 = x1 + w - 1
-    y2 = y1 + h - 1
-    image = image.copy()
-    image_rec = cv2.rectangle(image, (x1, y1), (x2, y2), color, thickness)
-    return image_rec
-
-
-# def sample_with_frame(sample, is_rgb=False, thickness=1, color=(255, 0, 0)):
-#     if not is_rgb:
-#         # sample_bin = (255 * sample)
-#         sample = np.stack([sample, sample, sample], axis=0).transpose([1, 2, 0])
-#     sample = (255 * sample).astype(np.uint8)
-#     return put_frame(sample, thickness, color)
-
-
-def replace_underscore(df):
-    map_columns = {column: column.replace("_", "-") for column in df.columns}
-    df.rename(map_columns, axis="columns", inplace=True)
-    # check which columns are strings
-    str_columns = df.applymap(type).eq(str).all()
-    for column in df.columns:
-        if str_columns[column]:
-            map_values = {
-                value: value.replace("_", "-")
-                for value in df[column].unique()
-                if type(value) == str
-            }
-            df[column].replace(map_values, inplace=True)
+            list_all.extend(flatten(x))
+    return list_all
