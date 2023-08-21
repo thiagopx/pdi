@@ -21,7 +21,7 @@ This repository is organized as follows:
 
 - `scripts/`: This directory includes any supporting scripts or utility programs used in the course.
 
-- `requirements.txt`: This file lists the required Python packages. You can create a virtual environment and install these packages using the instructions below.
+- `requirements.txt`: This file lists the required Python packages. You can create a virtual environment (with virtualenv) and install these packages using the instructions below.
 
 ## Prerequisites
 
@@ -29,8 +29,14 @@ Before starting this course, it is recommended to have a basic understanding of 
 
 ## Installation
 
-To run the Jupyter notebooks and work on the course materials, you'll need to set up a Python environment with the required dependencies. Follow the steps below:
+To run the Jupyter notebooks and work on the course materials, you'll need to set up a Python environment with the required dependencies. You may follow the steps below (tested on Python 3.8.10 and Ubuntu 20.04.6 LTS):
 
-1. Clone this repository to your local machine:
-2. ...
+1. Clone this repository: `git clone https://github.com/thiagopx/pdi.git` 
+2. Change the current directory to the root of the project: `cd pdi`
+3. If you don't have virtualenv installed, you can install it using pip, which is the package installer for Python: `pip install virtualenv`
+4. Create a local virtual enviroment named `.venv`: `python3 -m venv .venv`
+5. Now, activate the virtual environment: `source .venv/bin/activate
+6. Install the requirements: `pip install -r requirements.txt`
+`
+`
 
