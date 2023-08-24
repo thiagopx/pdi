@@ -67,7 +67,7 @@ def show_collection(
     else:
         titles = len(images) * [""]
 
-    h, w = images[0].shape[:-1]
+    h, w = images[0].shape[:-1] if images[0].ndim == 3 else images[0].shape
     fig, axes = plt.subplots(
         nrows=num_rows,
         ncols=num_cols,
@@ -86,9 +86,7 @@ def show_collection(
 
 
 def draw_bbox(ax, bbox, color=(1.0, 0, 1.0)):
-    rect = Rectangle(
-        (bbox[0], bbox[1]), bbox[2], bbox[3], edgecolor=color, facecolor="none"
-    )
+    rect = Rectangle((bbox[0], bbox[1]), bbox[2], bbox[3], edgecolor=color, facecolor="none")
     ax.add_artist(rect)
     return ax
 
