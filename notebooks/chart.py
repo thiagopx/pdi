@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 
 from utils import load_rgb
+from skimage import exposure, img_as_float
 
 DPI = 10
 
@@ -85,10 +86,10 @@ def show_collection(
         return axes
 
 
-def draw_bbox(ax, bbox, color=(1.0, 0, 1.0)):
-    rect = Rectangle((bbox[0], bbox[1]), bbox[2], bbox[3], edgecolor=color, facecolor="none")
-    ax.add_artist(rect)
-    return ax
+# def draw_bbox(ax, bbox, color=(1.0, 0, 1.0)):
+#     rect = Rectangle((bbox[0], bbox[1]), bbox[2], bbox[3], edgecolor=color, facecolor="none")
+#     ax.add_artist(rect)
+#     return ax
 
 
 def gray2rgb(image):
@@ -126,6 +127,49 @@ def autolabel(rects, ax):
         )
 
 
+def plot_histogram(images, titles=None, bins=256, return_as_image=False, fontsize=10):
+    num_images = 1
+    if isinstance(images, list):
+        num_images = len(images)
+    else:
+        images = [images]
+
+    fig, axes = plt.subplots(ncols=num_images, sharey=True, figsize=(num_images * 3, 3))
+    if num_images == 1:
+        axes = np.array(axes)
+    axes = axes.ravel()
+    axes_twins = []
+    if titles is None:
+        titles = num_images * [""]
+
+    for ax, image, title in zip(axes, images, titles):
+        image = img_as_float(image)
+        ax.hist(image.ravel(), bins=bins, histtype="step", color="black")
+        ax.set_title(title, fontsize=fontsize)
+        ax_cdf = ax.twinx()
+        img_cdf, bins = exposure.cumulative_distribution(image, bins)
+        ax_cdf.plot(bins, img_cdf, "r")
+        axes_twins.append(ax_cdf)
+
+    axes[0].ticklabel_format(axis="y", style="scientific", scilimits=(0, 0))
+    plt.xlabel("Pixel intensity", fontsize=fontsize)
+    axes[0].set_xlim(0, 1)
+    axes[0].set_ylabel("Number of pixels", fontsize=fontsize)
+    _, y_max = axes[0].get_ylim()
+    axes[0].set_yticks(np.linspace(0, y_max, 5))
+
+    axes_twins[-1].set_yticks(np.linspace(0, 1, 5))
+    axes_twins[-1].set_ylabel("Fraction of total intensity", fontsize=fontsize)
+
+    if return_as_image:
+        plt.close()
+        fig.canvas.draw()  # cache the renderer
+        data = np.frombuffer(fig.canvas.tostring_rgb(), dtype="uint8")
+        # NOTE: reversed converts (W, H) from get_width_height to (H, W)
+        fig_image = data.reshape(*reversed(fig.canvas.get_width_height()), 3)  # (H, W, 3)
+        return fig_image
+
+
 def plot_dist(values, topn=30):
     fig, ax = plt.subplots(figsize=(15, 3))
     count = defaultdict(lambda: 0)
@@ -146,17 +190,17 @@ def put_frame(image, is_rgb=False, thickness=1, color=(255, 0, 0)):
     return image_frame
 
 
-def draw_bbox(image, bbox, is_rgb=False, thickness=1, color=(255, 0, 0)):
-    if image.dtype in [np.bool, np.float32]:
-        image = (255 * image).astype(np.uint8)
-    if not is_rgb:
-        image = np.stack([image, image, image], axis=0).transpose([1, 2, 0])
+# def draw_bbox(image, bbox, is_rgb=False, thickness=1, color=(255, 0, 0)):
+#     if image.dtype in [np.bool, np.float32]:
+#         image = (255 * image).astype(np.uint8)
+#     if not is_rgb:
+#         image = np.stack([image, image, image], axis=0).transpose([1, 2, 0])
 
-    x, y, w, h = bbox
-    x1 = x
-    y1 = y
-    x2 = x1 + w - 1
-    y2 = y1 + h - 1
-    image = image.copy()
-    image_rec = cv2.rectangle(image, (x1, y1), (x2, y2), color, thickness)
-    return image_rec
+#     x, y, w, h = bbox
+#     x1 = x
+#     y1 = y
+#     x2 = x1 + w - 1
+#     y2 = y1 + h - 1
+#     image = image.copy()
+#     image_rec = cv2.rectangle(image, (x1, y1), (x2, y2), color, thickness)
+#     return image_rec
